@@ -27,6 +27,7 @@
 
 import asyncore
 import json
+import random
 import socket
 import sys
 
@@ -43,26 +44,31 @@ class BrokerHandler(asyncore.dispatcher_with_send):
         self.buffer = ""
 
     def send(self, data):
+        print json.dumps(data)
         asyncore.dispatcher_with_send.send(self, json.dumps(data))
+        asyncore.dispatcher_with_send.send(self, "\r\n\r\n")
 
     def handle_read(self):
         self.buffer += self.recv(1024)
-        items = self.buffer.split("\n")
-        self.buffer = items[-1]
-        [self.ProcessPDU(x) for x in self.buffer[:-1]]
+        packets = self.buffer.split("\r\n\r\n")
+        self.buffer = packets[-1]
+        [self.ProcessPDU(x) for x in packets[:-1]]
 
     def handle_close(self):
         if self.name is not None:
             self.database.RemoveClient(self.name)
+        self.shutdown(socket.SHUT_RDWR)
+        self.close()
+        print "Closed connection from %s" % repr(self.addr)
 
     def GetAddress(self):
         return self.addr[0]
 
     def ProcessPDU(self, packet):
+        print packet
         try:
             message = json.loads(packet)
         except ValueError:
-            self.SendFatalError("packet was improperly formatted")
             return
         try:
             typ = message["type"]
@@ -93,6 +99,7 @@ class BrokerHandler(asyncore.dispatcher_with_send):
         address = self.GetAddress()
         self.database.AddClient(name, address, self)
         self.SendRegisterOk()
+        self.name = name
 
     def ProcessPair(self, message):
         try:
@@ -107,6 +114,8 @@ class BrokerHandler(asyncore.dispatcher_with_send):
             "message": message
         }
         self.send(packet)
+        print "Fatal error from %s: %s" % (self.GetAddress(), message)
+        self.handle_close()
 
     def SendGeneralError(self, message):
         packet = {
@@ -157,6 +166,8 @@ class BrokerDatabase(object):
             raise BrokerFatalError("user not registered")
         if respondent not in self.clients:
             raise BrokerGeneralError("requested user no longer available")
+        if respondent == proponent:
+            raise BrokerGeneralError("cannot pair with self")
         r_address, r_handler = self.clients[respondent]
         p_address, p_handler = self.clients[proponent]
         p_port = r_port = random.randint(49200, 49300)
@@ -177,8 +188,9 @@ class BrokerServer(asyncore.dispatcher, BrokerDatabase):
         self.set_reuse_addr()
         self.bind((host, port))
         self.listen(5)
+        print "Listening on %s:%d" % (host, port)
 
-    def handle_connect(self):
+    def handle_accept(self):
         pair = self.accept()
         if pair is not None:
             sock, addr = pair
