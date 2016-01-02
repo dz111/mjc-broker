@@ -43,7 +43,6 @@ class BrokerClient(asyncore.dispatcher_with_send, observable.Observable):
         self.name = None
 
     def send(self, data):
-        print json.dumps(data)
         asyncore.dispatcher_with_send.send(self, json.dumps(data))
         asyncore.dispatcher_with_send.send(self, "\r\n\r\n")
 
@@ -69,7 +68,6 @@ class BrokerClient(asyncore.dispatcher_with_send, observable.Observable):
             self.SendPair(name)
 
     def ProcessPDU(self, packet):
-        print packet
         try:
             message = json.loads(packet)
         except ValueError:
@@ -101,7 +99,6 @@ class BrokerClient(asyncore.dispatcher_with_send, observable.Observable):
         elif typ == "registerok":
             try:
                 self.name = message["name"]
-                print self.name
             except KeyError:
                 logging.error("problem with registerok: %s", packet)
             else:
