@@ -44,7 +44,6 @@ class BrokerHandler(asyncore.dispatcher_with_send):
         self.buffer = ""
 
     def send(self, data):
-        print json.dumps(data)
         asyncore.dispatcher_with_send.send(self, json.dumps(data))
         asyncore.dispatcher_with_send.send(self, "\r\n\r\n")
 
@@ -57,7 +56,6 @@ class BrokerHandler(asyncore.dispatcher_with_send):
     def handle_close(self):
         if self.name is not None:
             self.database.RemoveClient(self.name)
-        self.shutdown(socket.SHUT_RDWR)
         self.close()
         print "Closed connection from %s" % repr(self.addr)
 
@@ -65,7 +63,6 @@ class BrokerHandler(asyncore.dispatcher_with_send):
         return self.addr[0]
 
     def ProcessPDU(self, packet):
-        print packet
         try:
             message = json.loads(packet)
         except ValueError:
@@ -142,7 +139,8 @@ class BrokerHandler(asyncore.dispatcher_with_send):
 
     def SendRegisterOk(self):
         packet = {
-            "type": "registerok"
+            "type": "registerok",
+            "name": self.name
         }
         self.send(packet)
 
