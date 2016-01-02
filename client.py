@@ -56,6 +56,9 @@ class BrokerClient(asyncore.dispatcher_with_send, observable.Observable):
         self._sendMessage("status", "closed")
         self.close()
 
+    def handle_connect(self):
+        self._sendMessage("status", "connected")
+
     def Connect(self):
         self.connect(self.addr)
 
