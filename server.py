@@ -140,7 +140,8 @@ class BrokerHandler(asyncore.dispatcher_with_send):
     def SendRegisterOk(self):
         packet = {
             "type": "registerok",
-            "name": self.name
+            "name": self.name,
+            "address": self.GetAddress()
         }
         self.send(packet)
 

@@ -97,12 +97,12 @@ class BrokerClient(asyncore.dispatcher_with_send, observable.Observable):
             except KeyError:
                 logging.error("problem with client list: %s", packet)
         elif typ == "registerok":
-            try:
-                self.name = message["name"]
-            except KeyError:
+            if "name" not in message or "address" not in message:
                 logging.error("problem with registerok: %s", packet)
             else:
+                self.name = message["name"]
                 self._sendMessage("status", "registered")
+                self._sendMessage("address", message["address"])
 
     def SendRegister(self, name):
         packet = {
