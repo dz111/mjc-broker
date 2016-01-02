@@ -93,10 +93,10 @@ class BrokerHandler(asyncore.dispatcher_with_send):
             name = message["name"]
         except KeyError:
             raise BrokerFatalError("'register' packet must contain 'name'")
+        self.name = name
         address = self.GetAddress()
         self.database.AddClient(name, address, self)
         self.SendRegisterOk()
-        self.name = name
 
     def ProcessPair(self, message):
         try:
