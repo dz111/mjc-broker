@@ -25,33 +25,165 @@
 # DEALINGS IN THE SOFTWARE.                                                   #
 ###############################################################################
 
-
 import asyncore
+import json
 import socket
 import sys
 
 usage = "usage: server.py <host> <port>"
 
-class EchoHandler(asyncore.dispatcher_with_send):
-    def handle_read(self):
-        data = self.recv(8192)
-        if data:
-            self.send(data)
+class BrokerGeneralError(Exception): pass
+class BrokerFatalError(Exception): pass
 
-class EchoServer(asyncore.dispatcher):
+class BrokerHandler(asyncore.dispatcher_with_send):
+    def __init__(self, sock, database):
+        asyncore.dispatcher_with_send.__init__(self, sock)
+        self.database = database
+        self.name = None
+        self.buffer = ""
+
+    def send(self, data):
+        asyncore.dispatcher_with_send.send(self, json.dumps(data))
+
+    def handle_read(self):
+        self.buffer += self.recv(1024)
+        items = self.buffer.split("\n")
+        self.buffer = items[-1]
+        [self.ProcessPDU(x) for x in self.buffer[:-1]]
+
+    def handle_close(self):
+        if self.name is not None:
+            self.database.RemoveClient(self.name)
+
+    def GetAddress(self):
+        return self.addr[0]
+
+    def ProcessPDU(self, packet):
+        try:
+            message = json.loads(packet)
+        except ValueError:
+            self.SendFatalError("packet was improperly formatted")
+            return
+        try:
+            typ = message["type"]
+        except KeyError:
+            self.SendFatalError("packet did not contain a message type")
+            return
+        if typ == "register":
+            action = self.ProcessRegister
+        elif typ == "pair":
+            action = self.ProcessPair
+        else:
+            self.SendFatalError("'%s' is not a valid message type" % typ)
+            return
+        try:
+            action(message)
+        except BrokerFatalError as e:
+            self.SendFatalError(e.message)
+            return
+        except BrokerGeneralError as e:
+            self.SendGeneralError(e.message)
+            return
+
+    def ProcessRegister(self, message):
+        try:
+            name = message["name"]
+        except KeyError:
+            raise BrokerFatalError("'register' packet must contain 'name'")
+        address = self.GetAddress()
+        self.database.AddClient(name, address, self)
+        self.SendRegisterOk()
+
+    def ProcessPair(self, message):
+        try:
+            respondent = message["respondent"]
+        except KeyError:
+            raise BrokerFatalError("'pair' packet must contain 'respondent'")
+        self.database.SendPairRequest(self.name, respondent)
+
+    def SendFatalError(self, message):
+        packet = {
+            "type": "fatal",
+            "message": message
+        }
+        self.send(packet)
+
+    def SendGeneralError(self, message):
+        packet = {
+            "type": "error",
+            "message": message
+        }
+        self.send(packet)
+
+    def SendPairing(self, name, address, port):
+        packet = {
+            "type": "pair",
+            "name": name,
+            "address": address,
+            "port": port
+        }
+        self.send(packet)
+
+    def SendClientList(self, names):
+        packet = {
+            "type": "clients",
+            "clients": names
+        }
+        self.send(packet)
+
+    def SendRegisterOk(self):
+        packet = {
+            "type": "registerok"
+        }
+        self.send(packet)
+
+class BrokerDatabase(object):
+    def __init__(self):
+        self.clients = {}
+
+    def AddClient(self, name, address, handler):
+        if name in self.clients:
+            raise BrokerGeneralError("name already in use")
+        self.clients[name] = (address, handler)
+        self.RefreshClientList()
+
+    def RemoveClient(self, name):
+        if name in self.clients:
+            del self.clients[name]
+        self.RefreshClientList()
+
+    def SendPairRequest(self, proponent, respondent):
+        if proponent not in self.clients:
+            raise BrokerFatalError("user not registered")
+        if respondent not in self.clients:
+            raise BrokerGeneralError("requested user no longer available")
+        r_address, r_handler = self.clients[respondent]
+        p_address, p_handler = self.clients[proponent]
+        p_port = r_port = random.randint(49200, 49300)
+        while r_port == p_port:
+            r_port = random.randint(49200, 49300)
+        r_handler.SendPairing(proponent, p_address, p_port)
+        p_handler.SendPairing(respondent, r_address, r_port)
+
+    def RefreshClientList(self):
+        client_names = self.clients.keys()
+        [handler.SendClientList(client_names) for address, handler in self.clients.values()]
+
+class BrokerServer(asyncore.dispatcher, BrokerDatabase):
     def __init__(self, host, port):
         asyncore.dispatcher.__init__(self)
+        BrokerDatabase.__init__(self)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
         self.bind((host, port))
         self.listen(5)
 
-    def handle_accept(self):
+    def handle_connect(self):
         pair = self.accept()
         if pair is not None:
             sock, addr = pair
-            print "Incoming connection from %s" % repr(addr)
-            handler = EchoHandler(sock)
+            print "New connection from %s" % repr(addr)
+            handler = BrokerHandler(sock, self)
 
 def main():
     if len(sys.argv) < 3:
@@ -64,7 +196,7 @@ def main():
         print "invalid port"
         print usage
         return
-    server = EchoServer(HOST, PORT)
+    server = BrokerServer(HOST, PORT)
     asyncore.loop()
 
 if __name__ == "__main__":
