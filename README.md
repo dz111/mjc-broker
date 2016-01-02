@@ -3,6 +3,7 @@
 ## Dependencies
 
 * python2.7
+* wxpython 2.8
 
 ## License
 
