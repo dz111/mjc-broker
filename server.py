@@ -121,12 +121,13 @@ class BrokerHandler(asyncore.dispatcher_with_send):
         }
         self.send(packet)
 
-    def SendPairing(self, name, address, port):
+    def SendPairing(self, name, local_port, remote_address, remote_port):
         packet = {
             "type": "pair",
             "name": name,
-            "address": address,
-            "port": port
+            "local_port": local_port,
+            "remote_address": remote_address,
+            "remote_port": remote_port
         }
         self.send(packet)
 
@@ -172,8 +173,8 @@ class BrokerDatabase(object):
         p_port = r_port = random.randint(49200, 49300)
         while r_port == p_port:
             r_port = random.randint(49200, 49300)
-        r_handler.SendPairing(proponent, p_address, p_port)
-        p_handler.SendPairing(respondent, r_address, r_port)
+        r_handler.SendPairing(proponent, r_port, p_address, p_port)
+        p_handler.SendPairing(respondent, p_port, r_address, r_port)
 
     def RefreshClientList(self):
         client_names = self.clients.keys()

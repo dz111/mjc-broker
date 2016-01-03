@@ -91,7 +91,7 @@ class BrokerClient(asyncore.dispatcher_with_send, observable.Observable):
                 self.handle_close()
         elif typ == "pair":
             try:
-                self._sendMessage("pair", (message["name"], message["address"], message["port"]))
+                self._sendMessage("pair", (message["name"], message["local_port"], message["remote_address"], message["remote_port"]))
             except KeyError:
                 logging.error("problem with pair request: %s", packet)
         elif typ == "clients":
