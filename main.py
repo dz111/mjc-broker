@@ -25,6 +25,7 @@
 # DEALINGS IN THE SOFTWARE.                                                   #
 ###############################################################################
 
+import asyncore
 import wx
 
 from client import BrokerClient
@@ -37,16 +38,103 @@ class MainApp(wx.App):
 
 class AppFrame(wx.Frame):
     def __init__(self):
-        wx.Frame.__init__(self, parent=None, title="mjc-broker", size=(250,300))
+        wx.Frame.__init__(self, parent=None, title="mjc-broker", size=(200,320))
+        # Create panel elements
         self.panel = wx.Panel(self)
         wx.StaticText(self.panel, label="Name", pos=(5,5))
         wx.StaticText(self.panel, label="IP Addr", pos=(5,88))
-        self.ctrl_name = wx.TextCtrl(self.panel, pos=(5,25), size=(230,-1))
-        self.ctrl_ipaddr = wx.TextCtrl(self.panel, pos=(55,85), size=(180,-1))
-        self.ctrl_connect = wx.Button(self.panel, pos=(5,55), label="Connect")
+        self.ctrl_name = wx.TextCtrl(self.panel, pos=(5,25), size=(180,-1))
+        self.ctrl_ipaddr = wx.TextCtrl(self.panel, pos=(55,85), size=(130,-1), style=wx.TE_READONLY)
+        self.ctrl_register = wx.Button(self.panel, pos=(5,55), label="Register")
         self.ctrl_pair = wx.Button(self.panel, pos=(5,245), label="Pair")
-        self.ctrl_list = wx.ListBox(self.panel, pos=(5,115), size=(230,120), style=wx.LB_SINGLE)
+        self.ctrl_list = wx.ListBox(self.panel, pos=(5,115), size=(180,120), style=wx.LB_SINGLE)
+        self.SetStatusBar(wx.StatusBar(self))
+        # Set gui initial state
         self.ctrl_pair.Disable()
+        self.SetStatusText("closed")
+        # Bind element event handlers
+        self.Bind(wx.EVT_BUTTON, lambda _: self.DoRegister(), self.ctrl_register)
+        self.Bind(wx.EVT_BUTTON, lambda _: self.DoPair(), self.ctrl_pair)
+        # Create client
+        self.client = BrokerClient("dz.id.au", 12400)
+        self.client.subscribe(self.MessageHandler)
+        self.client_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, lambda _: asyncore.poll(), self.client_timer)
+        self.client_timer.Start(100)
+        self.client.Connect()
+
+    def MessageHandler(self, topic, message):
+        if topic == "status":
+            self.SetStatusText(message)
+            if message == "registered":
+                self.OnRegistered()
+            else:
+                self.OnDeregistered()
+        elif topic == "address":
+            self.SetIPAddress(message)
+        elif topic == "clients":
+            self.SetClientList(message)
+        elif topic == "error":
+            self.ShowError(message, False)
+        elif topic == "fatal":
+            self.ShowError(message, True)
+        elif topic == "pair":
+            self.ApplySettings(*message[1:])
+            self.ShowPairResult(*message)
+
+    def OnRegistered(self):
+        self.ctrl_name.Disable()
+        self.ctrl_register.Disable()
+        self.ctrl_pair.Enable()
+
+    def OnDeregistered(self):
+        self.ctrl_name.Enable()
+        self.ctrl_register.Enable()
+        self.ctrl_pair.Disable()
+
+    def SetIPAddress(self, addr):
+        self.ctrl_ipaddr.SetValue(addr)
+
+    def SetClientList(self, clients):
+        self.ctrl_list.SetItems(clients)
+            idx = self.ctrl_list.FindString(self.GetName())
+            if idx >= 0:
+                self.ctrl_list.Delete(idx)
+
+    def ShowPairResult(self, name, local_port, remote_addr, remote_port):
+        message = "Pairing with '%s'\nLocal port: %d\nRemote: %s:%d" % (name, local_port, remote_addr, remote_port)
+        wx.MessageDialog(self, message=message, caption="Pairing Request", style=wx.OK|wx.ICON_INFORMATION).ShowModal()
+        self.Close()
+
+    def ShowError(self, message, fatal):
+        if fatal:
+            caption = "Fatal Error"
+        else:
+            caption = "Error"
+        wx.MessageDialog(self, message=message, caption=caption, style=wx.OK|wx.ICON_ERROR).ShowModal()
+        if fatal:
+            self.Close()
+
+    def DoRegister(self):
+        self.client.DoRegister(self.GetName())
+
+    def DoPair(self):
+        try:
+            self.client.DoRequestPair(self.GetSelection())
+        except IndexError:
+            print "no selection!"
+
+    def ApplySettings(self, local_port, remote_addr, remote_port):
+        pass
+
+    def GetName(self):
+        return self.ctrl_name.GetValue()
+
+    def GetSelection(self):
+        idx = self.ctrl_list.GetSelection()
+        if idx < 0:
+            raise IndexError("no selection has been made")
+        return self.ctrl_list.GetString(idx)
 
 def main():
     MainApp(redirect=False).MainLoop()

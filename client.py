@@ -34,6 +34,7 @@ import socket
 usage = "usage: client.py <host> <port>"
 
 class BrokerClient(asyncore.dispatcher_with_send, observable.Observable):
+    _observable_fields_ = ["status", "fatal", "error", "pair", "clients", "address"]
     def __init__(self, host, port):
         asyncore.dispatcher_with_send.__init__(self)
         observable.Observable.__init__(self)
