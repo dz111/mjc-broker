@@ -25,6 +25,11 @@
 # DEALINGS IN THE SOFTWARE.                                                   #
 ###############################################################################
 
+try:
+    import wx
+except:
+    pass
+
 class Observable(object):
     def __init__(self):
         self.__subscribers = {None: []}
@@ -46,7 +51,6 @@ class Observable(object):
             [subscribers.append(x) for x in self.__subscribers[topic] if x not in subscribers]
         for handler in subscribers:
             try:
-                import wx
                 wx.CallAfter(handler, topic, message)
             except (NameError, AssertionError):
                 handler(topic, message)
