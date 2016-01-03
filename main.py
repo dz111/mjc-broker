@@ -26,28 +26,34 @@
 ###############################################################################
 
 import asyncore
+import subprocess
 import wx
 
 from client import BrokerClient
 
+def get_git_revision_short_hash():
+    return subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
+
 class MainApp(wx.App):
     def OnInit(self):
-        self.frame = AppFrame()
+        title = "mjc-broker"
+        version = get_git_revision_short_hash()
+        self.frame = AppFrame(title, version)
         self.frame.Show()
         return True
 
 class AppFrame(wx.Frame):
-    def __init__(self):
-        wx.Frame.__init__(self, parent=None, title="mjc-broker", size=(200,320))
+    def __init__(self, title, version):
+        wx.Frame.__init__(self, parent=None, title=title + " - " + version, size=(250,320))
         # Create panel elements
         self.panel = wx.Panel(self)
         wx.StaticText(self.panel, label="Name", pos=(5,5))
         wx.StaticText(self.panel, label="IP Addr", pos=(5,88))
-        self.ctrl_name = wx.TextCtrl(self.panel, pos=(5,25), size=(180,-1))
-        self.ctrl_ipaddr = wx.TextCtrl(self.panel, pos=(55,85), size=(130,-1), style=wx.TE_READONLY)
+        self.ctrl_name = wx.TextCtrl(self.panel, pos=(5,25), size=(230,-1))
+        self.ctrl_ipaddr = wx.TextCtrl(self.panel, pos=(55,85), size=(180,-1), style=wx.TE_READONLY)
         self.ctrl_register = wx.Button(self.panel, pos=(5,55), label="Register")
         self.ctrl_pair = wx.Button(self.panel, pos=(5,245), label="Pair")
-        self.ctrl_list = wx.ListBox(self.panel, pos=(5,115), size=(180,120), style=wx.LB_SINGLE)
+        self.ctrl_list = wx.ListBox(self.panel, pos=(5,115), size=(230,120), style=wx.LB_SINGLE)
         self.SetStatusBar(wx.StatusBar(self))
         # Set gui initial state
         self.ctrl_pair.Disable()
@@ -97,9 +103,9 @@ class AppFrame(wx.Frame):
 
     def SetClientList(self, clients):
         self.ctrl_list.SetItems(clients)
-            idx = self.ctrl_list.FindString(self.GetName())
-            if idx >= 0:
-                self.ctrl_list.Delete(idx)
+        idx = self.ctrl_list.FindString(self.GetName())
+        if idx >= 0:
+            self.ctrl_list.Delete(idx)
 
     def ShowPairResult(self, name, local_port, remote_addr, remote_port):
         message = "Pairing with '%s'\nLocal port: %d\nRemote: %s:%d" % (name, local_port, remote_addr, remote_port)
