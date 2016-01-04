@@ -5,6 +5,7 @@
 * python2.7
 * wxpython 2.8
 * pyinstaller 3.x (build only)
+* python-daemon (server only)
 
 ## Release instructions
 
