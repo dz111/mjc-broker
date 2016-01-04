@@ -26,6 +26,7 @@
 ###############################################################################
 
 import asyncore
+import json
 import subprocess
 import wx
 import sys
@@ -42,6 +43,8 @@ class MainApp(wx.App):
 class AppFrame(wx.Frame):
     def __init__(self):
         wx.Frame.__init__(self, parent=None, title=TITLE + " - " + VERSION, size=(250,320))
+        # Load config
+        self.config = load_json("config.json")
         # Create panel elements
         self.panel = wx.Panel(self)
         wx.StaticText(self.panel, label="Name", pos=(5,5))
@@ -59,7 +62,7 @@ class AppFrame(wx.Frame):
         self.Bind(wx.EVT_BUTTON, lambda _: self.DoRegister(), self.ctrl_register)
         self.Bind(wx.EVT_BUTTON, lambda _: self.DoPair(), self.ctrl_pair)
         # Create client
-        self.client = BrokerClient("dz.id.au", 12400)
+        self.client = BrokerClient(self.config["server"]["address"], self.config["server"]["port"])
         self.client.subscribe(self.MessageHandler)
         self.client_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, lambda _: asyncore.poll(), self.client_timer)
@@ -146,6 +149,10 @@ def excepthook(etype, value, trace):
     with open("crash.log", "w") as fh:
         fh.write(''.join(traceback.format_exception(etype, value, trace)))
     sys.exit(1)
+
+def load_json(filename):
+    with open(filename) as fh:
+        return json.load(fh)
 
 def main():
     import logging
