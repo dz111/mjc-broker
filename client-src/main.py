@@ -31,6 +31,7 @@ import subprocess
 import wx
 import sys
 
+import configurator
 from client import BrokerClient
 from version import TITLE, VERSION
 
@@ -85,8 +86,9 @@ class AppFrame(wx.Frame):
         elif topic == "fatal":
             self.ShowError(message, True)
         elif topic == "pair":
-            self.ApplySettings(*message[1:])
-            self.ShowPairResult(*message)
+            sim = self.ApplySettings(*message[1:])
+            self.ShowPairResult(sim, *message)
+            self.Close()
 
     def OnRegistered(self):
         self.ctrl_name.Disable()
@@ -107,10 +109,9 @@ class AppFrame(wx.Frame):
         if idx >= 0:
             self.ctrl_list.Delete(idx)
 
-    def ShowPairResult(self, name, local_port, remote_addr, remote_port):
-        message = "Pairing with '%s'\nLocal port: %d\nRemote: %s:%d" % (name, local_port, remote_addr, remote_port)
+    def ShowPairResult(self, sim, name, local_port, remote_addr, remote_port):
+        message = "Sim: %s\nPairing with '%s'\nLocal port: %d\nRemote: %s:%d" % (sim, name, local_port, remote_addr, remote_port)
         wx.MessageDialog(self, message=message, caption="Pairing Request", style=wx.OK|wx.ICON_INFORMATION).ShowModal()
-        self.Close()
 
     def ShowWarning(self, message):
         wx.MessageDialog(self, message=message, caption="Warning", style=wx.OK|wx.ICON_WARNING).ShowModal()
@@ -134,7 +135,12 @@ class AppFrame(wx.Frame):
             self.ShowWarning("Please select a partner")
 
     def ApplySettings(self, local_port, remote_addr, remote_port):
-        pass
+        mjcroot = self.config["mjcroot"]
+        sim = "Loaded from config.json"
+        if not mjcroot:
+            sim, mjcroot = configurator.GetMJCPath()[0]
+        configurator.SetPairingData(local_port, remote_addr, remote_port, mjcroot)
+        return sim
 
     def GetName(self):
         return self.ctrl_name.GetValue()
