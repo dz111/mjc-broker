@@ -1,6 +1,7 @@
 *.pyc
 *.lnk
 *.spec
-log/
+*.log
+client-src/log/*
 client-build/build/*
 client-build/dist/*
