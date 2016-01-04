@@ -31,12 +31,12 @@ VSVersionInfo(
         u'040904b0',
         [StringStruct(u'CompanyName', u'David Zhong'),
         StringStruct(u'FileDescription', u'mjc-broker'),
-        StringStruct(u'FileVersion', u'0.1-095fb1'),
+        StringStruct(u'FileVersion', u'0.1-abfb4c'),
         StringStruct(u'InternalName', u'mjc-broker'),
         StringStruct(u'LegalCopyright', u'© 2016 David Zhong - MIT License'),
         StringStruct(u'OriginalFilename', u'mjc-broker.exe'),
         StringStruct(u'ProductName', u'mjc-broker'),
-        StringStruct(u'ProductVersion', u'0.1-095fb1')])
+        StringStruct(u'ProductVersion', u'0.1-abfb4c')])
       ]),
     VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
   ]

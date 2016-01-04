@@ -1,2 +1,2 @@
 TITLE = "mjc-broker"
-VERSION = "0.1-abcdef"
+VERSION = "0.1-abfb4c"
