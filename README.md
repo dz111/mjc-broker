@@ -6,6 +6,14 @@
 * wxpython 2.8
 * pyinstaller 3.x (build only)
 
+## Release instructions
+
+1. Update client-src/version.py
+
+2. Update the version constants in server.py
+
+3. Tag the commit as "mjc-broker-[version]" where [version] does not contain the commit hash
+
 ## Build instructions
 
 1. Update client-build/file_version_info.txt with correct information (lines 9, 10, 34, 39)

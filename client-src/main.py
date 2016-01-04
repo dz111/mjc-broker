@@ -30,21 +30,17 @@ import subprocess
 import wx
 
 from client import BrokerClient
-
-def get_git_revision_short_hash():
-    return subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
+from version import TITLE, VERSION
 
 class MainApp(wx.App):
     def OnInit(self):
-        title = "mjc-broker"
-        version = get_git_revision_short_hash()
-        self.frame = AppFrame(title, version)
+        self.frame = AppFrame()
         self.frame.Show()
         return True
 
 class AppFrame(wx.Frame):
-    def __init__(self, title, version):
-        wx.Frame.__init__(self, parent=None, title=title + " - " + version, size=(250,320))
+    def __init__(self):
+        wx.Frame.__init__(self, parent=None, title=TITLE + " - " + VERSION, size=(250,320))
         # Create panel elements
         self.panel = wx.Panel(self)
         wx.StaticText(self.panel, label="Name", pos=(5,5))

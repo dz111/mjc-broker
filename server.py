@@ -33,6 +33,10 @@ import sys
 
 usage = "usage: server.py <host> <port>"
 
+VERSION_MAJOR = 0
+VERSION_MINOR = 1
+VERSION_REVISION = 0
+
 class BrokerGeneralError(Exception): pass
 class BrokerFatalError(Exception): pass
 
