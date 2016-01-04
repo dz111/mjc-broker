@@ -151,7 +151,10 @@ def main():
     import logging
     logging.basicConfig(filename="mjc-broker.log", format="%(levelname)s:%(asctime)s:%(message)s")
     sys.excepthook = excepthook
-    MainApp(redirect=True).MainLoop()
+    try:
+        MainApp(redirect=True).MainLoop()
+    except:
+        logging.exception("fatal error")
 
 if __name__ == "__main__":
     main()
