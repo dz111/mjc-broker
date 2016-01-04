@@ -3,6 +3,34 @@
 ## Dependencies
 
 * python2.7
+* wxpython 2.8
+* pyinstaller 3.x (build only)
+
+## Release instructions
+
+1. Update client-src/version.py
+
+2. Update the version constants in server.py
+
+3. Tag the commit as "mjc-broker-[version]" where [version] does not contain the commit hash
+
+## Build instructions
+
+1. Update client-build/file_version_info.txt with correct information (lines 9, 10, 34, 39)
+
+2. Run build.bat
+
+## Version numbering
+
+Version numbers are in the structure: maj.min.rev-hash
+
+Increment version numbers:
+
+* maj: when breaking changes to the communications protocol occur
+* min: when features are added with no breaking changes
+* rev: when a new release with no feature additions occur (e.g. bug fix)
+
+hash refers to the current git commit hash
 
 ## License
 
