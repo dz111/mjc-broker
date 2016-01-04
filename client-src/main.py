@@ -28,6 +28,7 @@
 import asyncore
 import subprocess
 import wx
+import sys
 
 from client import BrokerClient
 from version import TITLE, VERSION
@@ -108,6 +109,9 @@ class AppFrame(wx.Frame):
         wx.MessageDialog(self, message=message, caption="Pairing Request", style=wx.OK|wx.ICON_INFORMATION).ShowModal()
         self.Close()
 
+    def ShowWarning(self, message):
+        wx.MessageDialog(self, message=message, caption="Warning", style=wx.OK|wx.ICON_WARNING).ShowModal()
+
     def ShowError(self, message, fatal):
         if fatal:
             caption = "Fatal Error"
@@ -124,7 +128,7 @@ class AppFrame(wx.Frame):
         try:
             self.client.DoRequestPair(self.GetSelection())
         except IndexError:
-            print "no selection!"
+            self.ShowWarning("Please select a partner")
 
     def ApplySettings(self, local_port, remote_addr, remote_port):
         pass
@@ -138,8 +142,16 @@ class AppFrame(wx.Frame):
             raise IndexError("no selection has been made")
         return self.ctrl_list.GetString(idx)
 
+def excepthook(etype, value, trace):
+    with open("crash.log", "w") as fh:
+        fh.write(''.join(traceback.format_exception(etype, value, trace)))
+    sys.exit(1)
+
 def main():
-    MainApp(redirect=False).MainLoop()
+    import logging
+    logging.basicConfig(filename="mjc-broker.log", format="%(levelname)s:%(asctime)s:%(message)s")
+    sys.excepthook = excepthook
+    MainApp(redirect=True).MainLoop()
 
 if __name__ == "__main__":
     main()
